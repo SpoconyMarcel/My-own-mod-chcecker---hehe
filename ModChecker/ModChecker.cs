@@ -29,7 +29,7 @@ namespace ModCheckerPlugin
     {
         public string Nick, Platform, Joined, Muted;
         public Color Col;
-        public int Fps;
+        public string Fps;
         public Transform Head;
         public bool Dummy;
         public List<string> Legal = new List<string>();
@@ -110,6 +110,49 @@ namespace ModCheckerPlugin
             BuildMenu();
         }
 
+
+        // ---------- Helpers that survive game updates ----------
+        VRRig[] rigCache;
+        float rigCacheTime;
+        VRRig[] AllRigs()
+        {
+            if (rigCache == null || Time.time - rigCacheTime > 1f)
+            {
+                rigCache = UnityEngine.Object.FindObjectsOfType<VRRig>();
+                rigCacheTime = Time.time;
+            }
+            return rigCache;
+        }
+
+        const System.Reflection.BindingFlags BF =
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Instance;
+
+        static object GetMember(object o, params string[] names)
+        {
+            if (o == null) return null;
+            var t = o.GetType();
+            foreach (var n in names)
+            {
+                try
+                {
+                    var f = t.GetField(n, BF);
+                    if (f != null) return f.GetValue(o);
+                    var pr = t.GetProperty(n, BF);
+                    if (pr != null) return pr.GetValue(o, null);
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        static string GetFps(VRRig rig)
+        {
+            var v = GetMember(rig, "fps", "FPS", "frameRate", "currentFps");
+            try { if (v != null) return Convert.ToInt32(v).ToString(); } catch { }
+            return "?";
+        }
+
         // ---------- Menu ----------
         void BuildMenu()
         {
@@ -178,7 +221,7 @@ namespace ModCheckerPlugin
 
         void Update()
         {
-            if (GorillaTagger.Instance == null || GorillaParent.instance == null) return;
+            if (GorillaTagger.Instance == null) return;
 
             TrackRoom();
 
@@ -273,7 +316,7 @@ namespace ModCheckerPlugin
         {
             bestRig = null; bestDummy = false;
             float bestAngle = 8f;
-            foreach (var rig in GorillaParent.instance.vrrigs)
+            foreach (var rig in AllRigs())
             {
                 if (rig == null || rig.isOfflineVRRig) continue;
                 float a = Vector3.Angle(dir, rig.headMesh.transform.position - origin);
@@ -303,10 +346,9 @@ namespace ModCheckerPlugin
             {
                 Nick = np != null ? np.NickName : "?",
                 Col = rig.playerColor,
-                Fps = rig.fps,
+                Fps = GetFps(rig),
                 Head = rig.headMesh.transform,
-                Platform = (rig.concatStringOfCosmeticsAllowed ?? "").Contains("FIRST LOGIN")
-                    ? "Steam / PC" : T("Quest (standalone)", "Quest (samodzielny)"),
+                Platform = PlatformOf(rig),
                 Joined = JoinedText(rig)
             };
 
@@ -328,6 +370,14 @@ namespace ModCheckerPlugin
             return i;
         }
 
+
+        string PlatformOf(VRRig rig)
+        {
+            string cos = GetMember(rig, "concatStringOfCosmeticsAllowed", "rawCosmeticString", "cosmeticsString") as string;
+            if (cos == null) return T("unknown", "nieznana");
+            return cos.Contains("FIRST LOGIN") ? "Steam / PC" : T("Quest (standalone)", "Quest (samodzielny)");
+        }
+
         Info DummyInfo()
         {
             var i = new Info
@@ -335,7 +385,7 @@ namespace ModCheckerPlugin
                 Dummy = true,
                 Nick = "TestRig",
                 Col = new Color(0.9f, 0.2f, 0.8f),
-                Fps = 72,
+                Fps = "72",
                 Head = dummyHead,
                 Platform = T("Quest (standalone)", "Quest (samodzielny)"),
                 Muted = dummyMuted ? T("yes", "tak") : T("no", "nie")
@@ -402,7 +452,7 @@ namespace ModCheckerPlugin
                 selRig = null;
                 roomJoinTime = Time.time;
             }
-            foreach (var rig in GorillaParent.instance.vrrigs)
+            foreach (var rig in AllRigs())
             {
                 var np = rig?.OwningNetPlayer;
                 if (np == null) continue;
