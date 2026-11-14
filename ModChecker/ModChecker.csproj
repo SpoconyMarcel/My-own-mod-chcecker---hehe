@@ -21,6 +21,8 @@
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.XRModule"><HintPath>..\libs\UnityEngine.XRModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="PhotonUnityNetworking"><HintPath>..\libs\PhotonUnityNetworking.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Photon3Unity3D"><HintPath>..\libs\Photon3Unity3D.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.Collections"><HintPath>..\libs\Unity.Collections.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="PhotonRealtime"><HintPath>..\libs\PhotonRealtime.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 </Project>
